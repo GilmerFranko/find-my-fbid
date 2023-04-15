@@ -4,17 +4,17 @@ use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\WebDriverBy;
 
-
 /* Cargar la biblioteca Selenium WebDriver para PHP */
-require_once('../engine/selenium/vendor/autoload.php');
+require_once('selenium/vendor/autoload.php');
 /* Cargar la clase FindMyId */
 require_once('find-my-id.class.php');
 
-$_GET['username'] = 'zuck';
-if(isset($_GET['username']) AND is_string($_GET['username']))
+//$_POST['link'] = 'https://m.facebook.com/zuck';
+
+if(isset($_POST['link']) AND is_string($_POST['link']))
 {
 
-  initScraping('https://m.facebook.com/' . $_GET['username']);
+  initScraping($_POST['link']);
 
 }
 
@@ -29,42 +29,43 @@ function initScraping($facebook_url)
   $lock_file = 'webdriver.lock';
 
   // Realiza un muestreo de los puertos para ver cuál está disponible
-  while (true) {
-    foreach ($ports as $port)
+
+  foreach ($ports as $port)
+  {
+
+    try
     {
 
-      try
-      {
         // Se genera la url con el puerto a utilizar
-        $serverUrl = 'http://localhost:' . $port;
+      $serverUrl = 'http://localhost:' . $port;
         // Inicia el scraping
-        $data = new FindMyId($serverUrl, $facebook_url);
-
-        if($data == false)
-        {
-          continue;
-        }
-        else
-        {
-          break 2;
-        }
-      }
-      catch (Exception $e)
+      $data = new FindMyId($serverUrl, $facebook_url);
+      
+      if($data == false)
       {
-        error_log($e);
         continue;
       }
-
+      else
+      {
+        echo json_encode($data->data);
+        break;
+      }
     }
-    // Si llegamos aquí, significa que todas las instancias de WebDriver en los puertos especificados están ocupadas
-    // Esperamos un período de tiempo antes de intentar nuevamente
-    sleep(1);
+    catch (Exception $e)
+    {
+      echo $e;
+      error_log($e);
+      continue;
+    }
+    
   }
 
-
-
-  echo var_export($data->data);
 }
+
+
+
+
+
 
 
 

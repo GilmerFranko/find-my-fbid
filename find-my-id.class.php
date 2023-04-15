@@ -4,6 +4,7 @@ use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\WebDriverBy;
 
+require_once('selenium/vendor/autoload.php');
 Class FindMyId{
 
   /* Contiene la instancia del controlador de remoto de WebDriver */
@@ -18,7 +19,8 @@ Class FindMyId{
     $this->data = array(
       'name' => $this->getFBName(),
       'fbid' => $this->getFBID(),
-      'verified' => true,
+      'photo'=> $this->getPhotoProfile(),
+      'verified' => $this->getUserVerified(),
     );
 
     $this->driver->quit();
@@ -29,7 +31,7 @@ Class FindMyId{
 
     // Configurar opciones de Chrome
     $options = new ChromeOptions();
-    //$options->addArguments(['--disable-gpu','--headless']);
+    $options->addArguments(['--disable-gpu','--headless']);
 
     // Configurar opciones de DesiredCapabilities
     $capabilities = DesiredCapabilities::chrome();
@@ -104,8 +106,49 @@ Class FindMyId{
         /* Busca el id del usuario */
         $fbid = $FBID->getAttribute('href');
 
+        $components = parse_url($fbid);
+
+        /* Si la url contiene el id (ejemplo: https://facebook.com/profile.php?id=4) */
+        if(isset($components['query']))
+        {
+          /* Devuelve FBID */
+          $query = parse_str($components['query'], $rid);
+          $fbid = $rid['rid'];
+          return $fbid;
+        }
+        return 0;
+      }
+      catch (Exception $e)
+      {
+        continue;
+      }
+      break;
+    }
+  }
+
+  /**
+   * Extrae foto de perfil
+   */
+  public function getPhotoProfile()
+  {
+    /* Contiene las etiquetas en las cuales se almacena
+     * la foto del usuario en el HTML
+     */
+    $tags = array('.profpic');
+    $countTags = count($tags);
+    for($i = 0;$i < $countTags; $i++)
+    {
+      try
+      {
+        $photo = $this->driver->findElement(
+          WebDriverBy::cssSelector($tags[$i])
+        );
+
+        /* Busca el id del usuario */
+        $pic = $photo->getAttribute('src');
+
         /* Devuelve FBID */
-        return $fbid;
+        return $pic;
       }
       catch (Exception $e)
       {
@@ -120,18 +163,24 @@ Class FindMyId{
     /* Contiene las etiquetas en las cuales se almacena
      * el nombre del usuario en el HTML
      */
-    $tags = array('.bv');
-    $countTags = count($tags);
+    $tags = array('._3nqs');
 
-    /* Extrae si el usuario está verificado */
-    // Verificar si existe un elemento con un ID determinado
-    if ($Username->findElements(WebDriverBy::cssSelector($tags[$i]))) {
-      $verified = true;
-    } else {
-      $verified = false;
+    try
+    {
+      /* Extrae si el usuario está verificado */
+      // Verificar si existe un elemento con un ID determinado
+      if ($this->driver->findElements(WebDriverBy::cssSelector($tags[0]))) {
+        return true;
+      } else {
+        return false;
+      }
+
     }
-
-    return $verified;
+    catch (Exception $e)
+    {
+      return false;
+    }
+    
   }
 }
 
